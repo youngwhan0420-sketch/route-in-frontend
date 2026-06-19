@@ -23,22 +23,6 @@ React 기반으로 사용자 화면을 구성하고, Axios와 React Query를 통
 
 ---
 
-## 📌 본인 담당 기능
-
-* 출석 시스템 프론트엔드 연동
-* REST API 연동 구조 설계 및 구현
-* Axios Instance 기반 공통 API 요청 처리
-* React Query 기반 서버 상태 조회 및 갱신
-* Zustand 기반 로그인 사용자 상태 관리
-* 출석 달력 UI 및 팝업 상태 처리
-* 게시글, 팔로우, 추천, 코스, 알림 등 API 연동
-* AI 오늘의 운동 추천 카드 UI 구현
-* AI 코치 질문 / 답변 채팅 UI 구현
-* AI 질문 전송, 채팅 기록 조회, 채팅 기록 초기화 API 연동
-* React Query 기반 AI 추천 / AI 채팅 기록 캐싱 및 재조회 처리
-
----
-
 # 1. Frontend 전체 구조
 
 Route-In 프론트엔드는 Page, Component, API Service, 전역 상태, React Query를 중심으로 구성됩니다.
