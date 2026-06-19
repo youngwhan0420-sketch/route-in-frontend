@@ -1,39 +1,41 @@
-# 🖥 Route-In Frontend
+# 🖥 Route-In-AI-Coach Frontend
 
-Route-In 서비스의 프론트엔드입니다.
+Route-In-AI-Coach 서비스의 프론트엔드입니다.
 
-React 기반으로 사용자 화면을 구성하고, Axios와 React Query를 통해 백엔드 REST API와 연동합니다.  
-게시글, 러닝코스, 루틴, 팔로우, 알림, 채팅, 인바디, 출석 기능을 사용자 화면에서 사용할 수 있도록 구현했습니다.
-
-[🔗 Backend 레포](https://github.com/Koreait-Triple-Stack/route_in_backend.git)　|　[🔗 배포 주소](https://routein.store)
+React 기반으로 사용자 화면을 구성하고, Axios와 React Query를 통해 백엔드 REST API와 연동합니다.
+게시글, 러닝코스, 루틴, 팔로우, 알림, 채팅, 인바디, 출석, AI 추천, AI 코치 질문 / 답변 기능을 사용자 화면에서 사용할 수 있도록 구현했습니다.
 
 ---
 
 ## 🛠 Tech Stack
 
-| 구분 | 기술 |
-|---|---|
-| Library | React |
-| Build Tool | Vite |
-| Routing | React Router |
+| 구분           | 기술                           |
+| ------------ | ---------------------------- |
+| Library      | React                        |
+| Build Tool   | Vite                         |
+| Routing      | React Router                 |
 | Server State | TanStack Query / React Query |
-| Client State | Zustand |
-| UI | MUI |
-| HTTP Client | Axios |
-| 지도 | Kakao Map API |
-| 실시간 통신 | WebSocket · STOMP |
+| Client State | Zustand                      |
+| UI           | MUI                          |
+| HTTP Client  | Axios                        |
+| 지도           | Kakao Map API                |
+| 실시간 통신       | WebSocket · STOMP            |
 
 ---
 
 ## 📌 본인 담당 기능
 
-- 출석 시스템 프론트엔드 연동
-- REST API 연동 구조 설계 및 구현
-- Axios Instance 기반 공통 API 요청 처리
-- React Query 기반 서버 상태 조회 및 갱신
-- Zustand 기반 로그인 사용자 상태 관리
-- 출석 달력 UI 및 팝업 상태 처리
-- 게시글, 팔로우, 추천, 코스, 알림 등 API 연동
+* 출석 시스템 프론트엔드 연동
+* REST API 연동 구조 설계 및 구현
+* Axios Instance 기반 공통 API 요청 처리
+* React Query 기반 서버 상태 조회 및 갱신
+* Zustand 기반 로그인 사용자 상태 관리
+* 출석 달력 UI 및 팝업 상태 처리
+* 게시글, 팔로우, 추천, 코스, 알림 등 API 연동
+* AI 오늘의 운동 추천 카드 UI 구현
+* AI 코치 질문 / 답변 채팅 UI 구현
+* AI 질문 전송, 채팅 기록 조회, 채팅 기록 초기화 API 연동
+* React Query 기반 AI 추천 / AI 채팅 기록 캐싱 및 재조회 처리
 
 ---
 
@@ -55,14 +57,14 @@ Route-In 프론트엔드는 Page, Component, API Service, 전역 상태, React Q
 
 ## 1-1. 계층별 역할
 
-| 구분 | 역할 |
-|---|---|
-| Page | 하나의 화면 단위 |
-| Component | 재사용 가능한 UI 조각 |
-| API | 실제 Axios 요청 함수 |
-| Service | API 응답 처리 및 에러 처리 |
-| React Query | 서버 데이터 조회, 캐싱, 재조회 |
-| Zustand | 로그인 사용자 등 클라이언트 전역 상태 관리 |
+| 구분          | 역할                       |
+| ----------- | ------------------------ |
+| Page        | 하나의 화면 단위                |
+| Component   | 재사용 가능한 UI 조각            |
+| API         | 실제 Axios 요청 함수           |
+| Service     | API 응답 처리 및 에러 처리        |
+| React Query | 서버 데이터 조회, 캐싱, 재조회       |
+| Zustand     | 로그인 사용자 등 클라이언트 전역 상태 관리 |
 
 ---
 
@@ -154,6 +156,64 @@ Service
 API
 → 실제 Axios 요청
 ```
+
+---
+
+## 2-3. AI API / Service 분리 구조
+
+AI 기능도 동일하게 API 요청 함수와 Service 함수를 분리했습니다.
+
+```text
+aiRecommendApi.js
+→ AI 관련 실제 Axios 요청 담당
+
+aiRecommendService.js
+→ 응답 status 검사
+→ 실패 시 Error 발생
+→ 성공 시 result.data 반환
+```
+
+### AI API 예시
+
+```javascript
+export const getTodayRecommendationRequest = async (userId) => {
+    return await instance.get(`/ai/recommend/${userId}`);
+};
+
+export const getAIRespRequest = async (data) => {
+    return await instance.post("/ai/question", data);
+};
+
+export const getAIChatListByUserIdRequest = async (userId) => {
+    return await instance.get(`/ai/chatList/${userId}`);
+};
+
+export const removeAiChatRequest = async (userId) => {
+    return await instance.delete(`/ai/chatList/${userId}`);
+};
+```
+
+### AI Service 예시
+
+```javascript
+export const getTodayRecommendation = async (userId) => {
+    const result = await getTodayRecommendationRequest(userId);
+    if (result.data.status !== "success") throw new Error(result.data.message);
+    return result.data;
+};
+
+export const getAIResp = async (data) => {
+    const result = await getAIRespRequest(data);
+    if (result.data.status !== "success") throw new Error(result.data.message);
+    return result.data;
+};
+```
+
+### 설계 이유
+
+AI 기능은 API 호출 실패 가능성이 상대적으로 높습니다.
+
+외부 LLM API 응답 지연, 백엔드 처리 오류, 네트워크 문제 등이 발생할 수 있기 때문에 Service 계층에서 공통 응답 검증을 처리하고, Component에서는 성공 / 실패 상태에 따른 UI 처리에 집중하도록 구성했습니다.
 
 ---
 
@@ -474,6 +534,308 @@ points
 
 ---
 
+## 4-7. AI 추천 카드 화면 로직
+
+Route-In-AI-Coach의 메인 페이지에서는 사용자의 운동 데이터를 기반으로 생성된 오늘의 AI 추천을 카드 형태로 보여줍니다.
+
+관련 파일 구조는 다음과 같습니다.
+
+```text
+src/apis/aiRecommend/aiRecommendApi.js
+src/apis/aiRecommend/aiRecommendService.js
+src/pages/MainPage/AIRecommend.jsx
+src/pages/MainPage/AIChat.jsx
+src/components/Recommendation.jsx
+```
+
+### 전체 처리 흐름
+
+```text
+MainPage 렌더링
+→ AIRecommend 컴포넌트 호출
+→ React Query로 /ai/recommend/{userId} 요청
+→ 백엔드에서 오늘의 AI 추천 데이터 조회 또는 생성
+→ AI 추천 응답 수신
+→ 루틴 추천 카드와 러닝 추천 카드로 분리 렌더링
+```
+
+### 핵심 코드
+
+```javascript
+const {
+    data: recommendation,
+    isLoading,
+    error,
+} = useQuery({
+    queryKey: ["getTodayRecommendation", userId],
+    queryFn: () => getTodayRecommendation(userId),
+    enabled: !!userId,
+});
+```
+
+### 로직 설명
+
+```text
+queryKey: ["getTodayRecommendation", userId]
+→ 사용자별 오늘의 추천 데이터를 구분하기 위한 캐시 키
+
+queryFn: () => getTodayRecommendation(userId)
+→ 백엔드 /ai/recommend/{userId} API 호출
+
+enabled: !!userId
+→ userId가 있을 때만 API 요청 실행
+```
+
+### 설계 이유
+
+AI 추천은 로그인한 사용자별로 달라지는 데이터입니다.
+
+따라서 React Query의 queryKey에 `userId`를 포함해 사용자가 바뀌었을 때 이전 사용자의 AI 추천 데이터가 잘못 재사용되지 않도록 처리했습니다.
+
+---
+
+## 4-8. AI 추천 카드 렌더링 로직
+
+백엔드에서 받은 AI 추천 데이터는 `AIRecommend.jsx`에서 필요한 값만 분리해 카드 컴포넌트로 전달합니다.
+
+```javascript
+const {
+    routineTitle,
+    routineReason,
+    routineTags,
+    runningTitle,
+    runningReason,
+    runningTags,
+} = recommendation.data.aiResp;
+```
+
+### 화면 출력 구조
+
+```text
+AIRecommend
+→ 오늘의 AI 추천 가이드 영역
+→ 루틴 추천 카드
+→ 러닝 추천 카드
+→ AI 코치 질문하기 버튼
+```
+
+### 렌더링 예시
+
+```javascript
+<Stack spacing={3}>
+    <Recommendation
+        title={routineTitle}
+        reason={routineReason}
+        tags={routineTags}
+    />
+
+    <Divider />
+
+    <Recommendation
+        title={runningTitle}
+        reason={runningReason}
+        tags={runningTags}
+    />
+</Stack>
+```
+
+### 설계 이유
+
+AI 추천 결과에는 러닝 추천과 근력 루틴 추천이 함께 포함됩니다.
+
+프론트엔드에서는 하나의 응답 데이터를 받아 화면에서는 두 개의 추천 카드로 분리해 보여주도록 구성했습니다.
+
+```text
+aiResp
+→ routineTitle / routineReason / routineTags
+→ 루틴 추천 카드
+
+aiResp
+→ runningTitle / runningReason / runningTags
+→ 러닝 추천 카드
+```
+
+이렇게 분리하면 사용자는 오늘 해야 할 러닝 운동과 근력 루틴을 한 화면에서 구분해서 확인할 수 있습니다.
+
+---
+
+## 4-9. AI 코치 질문 / 답변 채팅 로직
+
+사용자는 메인 페이지의 `AI 코치 질문하기` 버튼을 눌러 AI에게 운동 관련 질문을 할 수 있습니다.
+
+### 전체 처리 흐름
+
+```text
+AI 코치 질문하기 버튼 클릭
+→ AIChat 컴포넌트 표시
+→ 사용자가 질문 입력
+→ 전송 버튼 클릭 또는 Enter 입력
+→ POST /ai/question 요청
+→ 백엔드에서 사용자 데이터 기반 프롬프트 생성
+→ Gemini API 호출
+→ AI 답변 생성
+→ 질문 / 답변 DB 저장
+→ 프론트엔드에서 채팅 목록 재조회
+→ 화면에 사용자 질문과 AI 답변 표시
+```
+
+### 질문 전송 로직
+
+```javascript
+const aiMutation = useMutation({
+    mutationFn: (question) => getAIResp({ userId, question }),
+    onMutate: async (question) => {
+        setNewChats((prev) => [...prev, { type: "user", text: question }]);
+        setQuestion("");
+    },
+    onSuccess: () => {
+        setNewChats([]);
+        queryClient.invalidateQueries(["getAIChatListByUserId", userId]);
+    },
+    onError: () => {
+        setNewChats((prev) => [
+            ...prev,
+            { type: "ai", text: "오류가 발생했습니다." },
+        ]);
+    },
+});
+```
+
+### 로직 설명
+
+```text
+mutationFn
+→ 사용자의 질문을 백엔드로 전송
+
+onMutate
+→ 서버 응답을 기다리기 전에 사용자 질문을 화면에 먼저 표시
+→ 입력창 초기화
+
+onSuccess
+→ AI 답변 저장이 완료되면 기존 채팅 목록 query 무효화
+→ 서버에서 최신 질문 / 답변 목록 재조회
+
+onError
+→ AI 호출 또는 서버 처리 실패 시 오류 메시지 표시
+```
+
+### 설계 이유
+
+AI 응답은 생성 시간이 걸릴 수 있습니다.
+
+사용자가 질문을 보냈는데 화면에 아무 반응이 없으면 요청이 처리되고 있는지 알기 어렵습니다.
+
+그래서 `onMutate`에서 사용자의 질문을 먼저 화면에 보여주고, AI 답변 생성 중에는 로딩 UI를 표시하도록 구성했습니다.
+
+---
+
+## 4-10. AI 채팅 기록 조회 로직
+
+AI 채팅 기록은 사용자가 이전에 질문한 내용과 AI 답변을 다시 볼 수 있도록 구성했습니다.
+
+```javascript
+const { data: chatList } = useQuery({
+    queryKey: ["getAIChatListByUserId", userId],
+    queryFn: () => getAIChatListByUserId(userId),
+    enabled: !!userId,
+});
+```
+
+### 처리 흐름
+
+```text
+AIChat 컴포넌트 렌더링
+→ userId 존재 여부 확인
+→ /ai/chatList/{userId} 요청
+→ 사용자의 AI 질문 / 답변 목록 수신
+→ 질문과 답변을 채팅 메시지 형태로 변환
+→ 화면에 말풍선 UI로 표시
+```
+
+### 채팅 데이터 변환 로직
+
+```javascript
+const historyChat = useMemo(() => {
+    if (!chatList?.data) return [];
+
+    return chatList.data.flatMap((chat) => [
+        { type: "user", text: chat.question },
+        { type: "ai", text: chat.resp },
+    ]);
+}, [chatList]);
+```
+
+### 로직 설명
+
+백엔드에서 받은 데이터는 질문과 답변이 하나의 객체로 들어 있습니다.
+
+```json
+{
+  "question": "초보자 하체 운동 추천해줘",
+  "resp": "스쿼트, 런지, 브릿지를 추천합니다."
+}
+```
+
+프론트엔드에서는 이를 채팅 화면에 맞게 두 개의 메시지로 변환합니다.
+
+```text
+사용자 메시지
+→ question
+
+AI 메시지
+→ resp
+```
+
+### 설계 이유
+
+DB에는 질문과 답변이 하나의 기록으로 저장되지만, 채팅 UI에서는 사용자 말풍선과 AI 말풍선이 분리되어야 합니다.
+
+그래서 `flatMap`을 사용해 하나의 채팅 기록을 두 개의 화면 메시지로 변환했습니다.
+
+---
+
+## 4-11. AI 채팅 기록 초기화 로직
+
+사용자는 AI 채팅 기록을 초기화할 수 있습니다.
+
+### 처리 흐름
+
+```text
+채팅 기록 초기화 버튼 클릭
+→ confirm 창 표시
+→ 사용자가 확인 선택
+→ DELETE /ai/chatList/{userId} 요청
+→ 백엔드에서 해당 사용자의 AI 질문 기록 삭제
+→ React Query query 무효화
+→ 화면에서 채팅 기록 제거
+```
+
+### 코드 흐름
+
+```javascript
+const removeAiChatMutation = useMutation({
+    mutationFn: () => removeAiChat(userId),
+    onSuccess: () => {
+        setNewChats([]);
+        queryClient.invalidateQueries(["getAIChatListByUserId", userId]);
+        alert("채팅 기록이 초기화되었습니다.");
+    },
+    onError: () => {
+        alert("채팅 기록이 초기화중 오류가 발생했습니다.");
+    },
+});
+```
+
+### 설계 이유
+
+AI 대화 기록은 사용자별 데이터입니다.
+
+기록을 삭제한 뒤에도 화면에 이전 대화가 남아 있으면 서버 상태와 화면 상태가 맞지 않게 됩니다.
+
+그래서 삭제 성공 후 `invalidateQueries`를 실행해 서버 기준 최신 상태를 다시 조회하도록 처리했습니다.
+
+---
+
 # 5. 서버 상태 관리 로직
 
 ## 5-1. React Query 사용 방식
@@ -537,6 +899,43 @@ principal.checked
 → principal.checked = false
 → MainPage에서 팝업 닫힘
 ```
+
+---
+
+## 5-4. AI 기능의 React Query 상태 관리
+
+AI 기능에서는 오늘의 추천 조회, AI 채팅 목록 조회, AI 질문 전송, 채팅 기록 초기화에 React Query를 사용했습니다.
+
+| 기능           | React Query 사용 방식                              |
+| ------------ | ---------------------------------------------- |
+| 오늘의 AI 추천 조회 | `useQuery(["getTodayRecommendation", userId])` |
+| AI 채팅 기록 조회  | `useQuery(["getAIChatListByUserId", userId])`  |
+| AI 질문 전송     | `useMutation(getAIResp)`                       |
+| AI 채팅 기록 초기화 | `useMutation(removeAiChat)`                    |
+
+### queryKey 설계
+
+```text
+["getTodayRecommendation", userId]
+→ 사용자별 오늘의 AI 추천 캐시 분리
+
+["getAIChatListByUserId", userId]
+→ 사용자별 AI 채팅 기록 캐시 분리
+```
+
+### mutation 이후 데이터 갱신
+
+AI 질문 전송에 성공하면 채팅 기록을 다시 조회합니다.
+
+```javascript
+queryClient.invalidateQueries(["getAIChatListByUserId", userId]);
+```
+
+### 설계 이유
+
+AI 질문에 대한 답변은 백엔드에서 생성되고 DB에 저장됩니다.
+
+따라서 프론트엔드에서 임시로 답변을 만드는 것이 아니라, 서버 저장 완료 후 채팅 기록을 다시 조회해 화면과 DB 상태를 일치시켰습니다.
 
 ---
 
@@ -606,6 +1005,82 @@ mutation 성공 후 관련 query를 invalidate하여 최신 데이터를 다시 
 
 ---
 
+## 6-4. AI 응답 로딩 처리
+
+### 문제
+
+AI 답변 생성에는 시간이 걸릴 수 있습니다.
+
+사용자가 질문을 보낸 뒤 화면에 변화가 없으면 요청이 실패했는지, 처리 중인지 알기 어렵습니다.
+
+### 해결
+
+`aiMutation.isPending` 값을 사용해 답변 생성 중 로딩 UI를 표시했습니다.
+
+```javascript
+{aiMutation.isPending && (
+    <Paper>
+        <CircularProgress size={14} />
+        <Typography>
+            답변 생성 중...
+        </Typography>
+    </Paper>
+)}
+```
+
+### 결과
+
+사용자가 AI 질문을 전송한 뒤 답변 생성 중이라는 상태를 명확히 확인할 수 있어 사용자 경험이 개선되었습니다.
+
+---
+
+## 6-5. AI 질문 전송 실패 처리
+
+### 문제
+
+Gemini API 오류, 백엔드 오류, 네트워크 오류가 발생하면 AI 답변을 받을 수 없습니다.
+
+### 해결
+
+`useMutation`의 `onError`에서 AI 메시지 형태로 오류 문구를 화면에 표시했습니다.
+
+```javascript
+onError: () => {
+    setNewChats((prev) => [
+        ...prev,
+        { type: "ai", text: "오류가 발생했습니다." },
+    ]);
+}
+```
+
+### 결과
+
+AI 응답 생성이 실패해도 화면이 멈추지 않고, 사용자에게 오류 상태를 안내할 수 있게 되었습니다.
+
+---
+
+## 6-6. AI 채팅 스크롤 위치 문제
+
+### 문제
+
+질문과 답변이 계속 추가되면 사용자가 직접 아래로 스크롤해야 하는 불편함이 생길 수 있습니다.
+
+### 해결
+
+채팅 메시지 개수나 로딩 상태가 바뀔 때마다 스크롤을 아래로 이동시켰습니다.
+
+```javascript
+useEffect(() => {
+    scrollToBottom();
+}, [displayChatList.length, aiMutation.isPending]);
+```
+
+### 결과
+
+사용자가 질문을 보내거나 AI 답변이 생성될 때 최신 메시지가 자동으로 보이도록 개선했습니다.
+
+---
+
 # 7. Frontend 핵심 포인트
 
 Route-In 프론트엔드에서 중요한 부분은 사용자의 행동을 API 요청으로 연결하고, 서버 응답을 기준으로 화면 상태를 갱신하는 것이었습니다.
@@ -615,5 +1090,23 @@ Route-In 프론트엔드에서 중요한 부분은 사용자의 행동을 API �
 그래서 React Query를 사용해 서버 데이터를 조회하고, mutation 이후 관련 데이터를 다시 조회하도록 처리했습니다.
 
 출석 시스템에서는 Zustand로 팝업 표시 상태를 즉시 닫고, 서버에는 `PATCH /attendance/popup/shown` 요청을 보내 DB 기준 상태를 저장했습니다.
+
+AI 기능에서는 사용자의 질문을 단순히 화면에 표시하는 것이 아니라, 질문 전송부터 답변 저장, 채팅 기록 재조회까지 서버 상태를 기준으로 일관되게 처리했습니다.
+
+```text
+사용자 질문 입력
+→ 프론트엔드에서 POST /ai/question 요청
+→ 백엔드에서 사용자 데이터 기반 AI 답변 생성
+→ 질문 / 답변 DB 저장
+→ 프론트엔드에서 채팅 기록 query 무효화
+→ 최신 채팅 기록 재조회
+→ 화면 갱신
+```
+
+또한 오늘의 AI 추천 기능은 사용자별로 다른 데이터를 보여주기 때문에 React Query의 queryKey에 `userId`를 포함했습니다.
+
+이를 통해 사용자가 바뀌었을 때 다른 사용자의 AI 추천이나 채팅 기록이 잘못 표시되는 문제를 방지했습니다.
+
+AI 응답 생성 중에는 로딩 UI를 표시하고, 오류 발생 시 채팅 메시지 형태로 오류를 안내하여 사용자 경험을 유지했습니다.
 
 이 구조를 통해 사용자 경험과 데이터 일관성을 함께 유지할 수 있었습니다.
